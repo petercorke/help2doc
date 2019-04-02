@@ -39,7 +39,7 @@ The H1 line is the first line in the file and gives the function name and a brie
 ```
 
 ## Additional comments
-Following the H1 line, but in the same comment block.
+Following the H1 line, but in the same comment block, describe the function (or the class).
 
 ```matlab
 %PLOT_RIBBON Draw a wide curved 3D arrow
@@ -68,7 +68,7 @@ Documentation ends at the first non-comment line in the file.
 
 ## Class methods
 
-Place the comments below the function declaration for the method
+In addition to the comment block starting at the top of the file which describes the class, document each method by a comment block below the function declaration for the method.  
 
 ```matlab
        function t = SE3(obj)
@@ -81,6 +81,7 @@ Place the comments below the function declaration for the method
             % See also SE3.
 ```
 
+Methods for the class are listed alphabetically, except for the constructor which is always listed first.  The class name is highlighted.
 
 ## Markup format
 
@@ -175,3 +176,4 @@ A comma separated list of functions is transformed into hyperlinked text.
 * `--rtb` and `--mvtb` add specific footer and copyright notices to the output documentation.  This needs to be generalized.
 * the MATLAB file parser still needs work
 * I think the HTML output generator is broken now...
+* Should build an index of all functions and classes and hyperlink any reference to them.
