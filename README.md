@@ -39,7 +39,7 @@ The H1 line is the first line in the file and gives the function name and a brie
 ```
 
 ## Additional comments
-Following the H1 line, but in the same comment block.
+Following the H1 line, but in the same comment block, describe the function (or the class).
 
 ```matlab
 %PLOT_RIBBON Draw a wide curved 3D arrow
@@ -64,11 +64,11 @@ Following the H1 line, but in the same comment block.
 % 'nice'         adjust the phase for nicely phased arrow 
 ```
 
-Documetation ends at the first non-comment line in the file.
+Documentation ends at the first non-comment line in the file.
 
 ## Class methods
 
-Place the comments below the function declaration for the method
+In addition to the comment block starting at the top of the file which describes the class, document each method by a comment block below the function declaration for the method.  
 
 ```matlab
        function t = SE3(obj)
@@ -81,6 +81,7 @@ Place the comments below the function declaration for the method
             % See also SE3.
 ```
 
+Methods for the class are listed alphabetically, except for the constructor which is always listed first.  The class name is highlighted.
 
 ## Markup format
 
@@ -94,11 +95,27 @@ A heading is indicated by a double colon on the end of a standalone text line
 %
 ```
 
-### Tables
+### Paragraph
+
+A sequence of lines with the same indent and no blank lines in between.  The first part of the paragraph is parsed to find any MATLAB code and any variables are added to a symbol table for this M-file.  Any instances of that symbol in later text are escaped in an output format specific way.
+
 ```matlab
 %
-% A heading::
+% X = FUNC(A,B) returns a matrix that is a function of A and B.  If A is a matrix then so is X.
+%
 ```
+will result in:
+
+`X = FUNC(A,B)` returns a matrix that is a function of `A` and `B`.  If `A` is a matrix then so is `X`.
+
+The MATLAB code parser is implemented using regexp and supports the following patterns:
+```
+VLIST := VAR | VAR, <VLIST> | <EMPTY> | ...
+LHS := F | F(<VLIST>) | OBJ.METHOD | OBJ.METHOD(<VLIST>)
+RHS := VAR | [<VLIST>]
+EXPR := <LHS> | <RHS> = <LHS>
+```
+
 
 ### Lists
 A list item begins with a hyphen.
@@ -131,7 +148,9 @@ Only two column tables are supported.  The columns are separated by at least 3 w
 %      around to the next line.
 %
 ```
-Tables cannot be nested.
+Tables cannot be nested.  There is no header row.
+
+In MarkDown output format it is mandatory to have a header row, so the first row of a table is empty.
 
 ### Literal
 
@@ -150,3 +169,11 @@ A comma separated list of functions is transformed into hyperlinked text.
 ```matlab
 % See also function1, function2, function3.
 ```
+
+
+# TODO
+
+* `--rtb` and `--mvtb` add specific footer and copyright notices to the output documentation.  This needs to be generalized.
+* the MATLAB file parser still needs work
+* I think the HTML output generator is broken now...
+* Should build an index of all functions and classes and hyperlink any reference to them.
