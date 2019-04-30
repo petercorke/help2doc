@@ -1,0 +1,372 @@
+#! /usr/bin/env python
+
+'''helptohtml
+
+Inspired by pydoc format, this allows simple markup in a Matlab function's
+text style documentation block.
+
+This is a heading::
+
+any line starting with a capital and ending with a :: becomes a section heading.
+
+Lists:
+
+- any series of lines starting with a dash is a bullet point
+   - and this is a sub list of bullet points
+   - really long lines should be formatted like this
+     and have the same level of text indent to be considered as
+     part of the same dot point
+
+These result in lists created with <ul> and </ul> tags.
+
+Tables:
+
+  key   description of key
+  key2  description of key2, which might be a very long description
+        in which case we continue it on a new line that has the same
+        level of indent as the line above.
+
+The key can contain any sequence of characters but no more than a single consecutive
+space.  The gap between key and description must be at three or more spaces.
+
+Paragraphs:
+
+All other text is considered to be a paragraph, and consecutive lines are
+joined into a block of text text displayed between <p> and </p> tags.
+
+An attempt is made to parse out what looks like a Matlab function definition
+from the start of the paragraph from which variables names are found.  These
+are all converted to bold text in the rest of the paragraph.  They are generally
+converted to lower case unless:
+    * the are in the nocaps list: R, T, J and certain other symbols
+    * it is already in camel case 
+
+Preformatted text, ie. code, is set by inserting 8 or more leading spaces.
+
+Peter Corke, May 2011
+'''
+
+# TODO
+#  preformatted code is flaky, if the indent level changes or there are blank
+# lines probably modify getchunk to chunk up all lines with big leading space,
+# and also to not strip off that left hand white space to preserve indenting
+
+import re
+import sys
+import traceback
+import os
+import os.path
+import optparse
+import glob
+
+import GenText  # file parser and text rendering
+
+
+parseDebug = False
+parseDebug = True
+
+pname = None
+
+
+class Module:
+    # Module(path)
+    # Module is a generalization that includes:
+    #  - mfile
+    #  - classdef file, an mfile that defines a class
+    #  - @class, a folder that defines a class
+    #
+    # Methods:
+    # m.format(gen)
+    # m.format_code(gen)
+    #
+    # fields:
+    #  path - the full path
+    #  filename - the rootfilename without @ or extension
+    #  atfile - True if starts with an @
+    #  isclass - True if a class
+    #  topcomment - the comment at top of file as a string
+    #  methods - a dictionary where the key is the method name and the
+    #            value is the comment as a string
+    def __init__(self, path):
+        self.path = path
+        self.filename = os.path.basename(path)
+        self.methods = {}
+        self.topcomment = None
+        rootname = os.path.splitext(self.filename)[0]
+        self.re_m = re.compile('''\s*function\s+(?P<lhs>.*=)?\s*(?P<func>[a-zA-Z][\w\.]*)(?P<args>.*)''')
+        if rootname.startswith('@'):
+            self.isclass = True
+            self.atfile = True
+            self.name = rootname[1:]
+        else:
+            # check if it's a classdef type file
+            self.atfile = False
+            self.isclass = False
+            self.name = rootname
+            with open(path, 'r') as f:
+                for line in f:
+                    if line.lstrip().startswith('classdef'):
+                        self.isclass = True
+                        break
+
+        if not self.atfile:
+            self.parse()
+
+    def __repr__(self):
+        if self.atfile:
+            typ = '@class'
+        elif self.isclass:
+            typ = 'classdef'
+        else:
+            typ = 'mfile'
+
+        return 'Module(%s) %s, rootname=%s, %d methods' % (self.path, typ, self.name, len(self.methods))
+
+    def parse(self):
+        # parse an m-file looking for header blocks
+        # - it will have a file header
+        # - it may have multiple methods defined
+        with open(self.path, 'r') as f:
+            # parse out the comment block at top of file
+            comment = ''
+            for line in f:
+                line2 = line.strip()
+                if not line2 or line2.lstrip()[0] != '%':
+                    break
+                comment += line.lstrip()
+            if comment:
+                self.topcomment = comment
+
+            # now go looking for commented functions
+            #    function ....
+            #     % comment
+            #     % more comment
+            self.method_comments = {}
+            for line in f:
+                if line.lstrip().startswith('function'):
+                    m = self.re_m.match(line)
+                    #print line
+                    if m:
+                        method = m.group('func')
+                        #print m.groups()
+                    else:
+                        print "couldnt parse method signature"
+                    comment = ''
+                    for line in f:
+                        line2 = line.strip()
+                        if not line2 or line2.lstrip()[0] != '%':
+                            break
+                        comment += line.lstrip()
+                    if comment:
+                        self.method_comments[method] = comment
+
+        # sort the methods
+        #  alphabetic ignoring case
+        self.methods = sorted(self.method_comments.keys(), key=str.lower)
+        if self.isclass and self.methods:
+            # if it's a class ensure that the constructor is first in the
+            # list
+            try:
+                self.methods.remove(self.name)
+                self.methods.insert(0, self.name)
+            except:
+                print "Class %s has no constructor method" % self.name
+
+    def format(self, gen):
+        # format the module, using the passed documentation generator/rendererp
+
+        if self.atfile:
+            # Generate a help document for an @class directory
+            classname = self.name
+
+            method_comments = {}
+
+            # for all m-files in the @class
+            for file in glob.glob(os.path.join(self.path, '*.m')):
+                mod = Module(file)
+
+                # if this is @class/class.m then print the top comment
+                try:
+                    if os.path.splitext(os.path.basename(file))[0] == self.name:
+                        gen.format(mod.topcomment, self.name)
+                        gen.endMethod()
+                except:
+                    print 'Failed to format class file %s in file %s' % (self.name, file)
+                    traceback.print_exc(file=sys.stdout)
+                    sys.exit(1)
+
+                # accumulate all the method comments
+                method_comments[mod.name] = mod.topcomment
+                method_comments.update(mod.method_comments)
+
+            # put all the methods in order
+            methods = sorted(method_comments.keys(), key=str.lower)
+            methods.remove(self.name)
+            methods.insert(0, self.name)
+
+            # render each method as documentation
+            for (i, method) in enumerate(methods):
+                print "Formatting method: ", method
+                gen.format(method_comments[method],
+                           classname + '.' + method,
+                           classname=self.name, tag=method, titlebar=False
+                           )
+                if i < (len(methods) - 1):
+                    # no separator after last method
+                    gen.endMethod()
+
+        elif self.isclass:
+            # Generate a help document for an m-file that defines a class
+            classname = self.name
+
+            # print the class documentation
+            gen.format(self.topcomment, self.name)
+            gen.endMethod()
+
+            # render each method as documentation
+            for (i, method) in enumerate(self.methods):
+                gen.format(self.method_comments[method],
+                           classname + '.' + method,
+                           classname=self.name,
+                           tag=method,
+                           titlebar=False
+                           )
+                if i < (len(self.methods) - 1):
+                    # no separator after last method
+                    gen.endMethod()
+        else:
+            if self.topcomment:
+                # Generate a help document for a regular m-file
+                gen.format(self.topcomment, self.name)
+
+        gen.endModule()
+
+    def format_code(self, gen, **kwargs):
+        gen.format_code(self.filename, **kwargs)
+
+
+def main():
+    global opts, pname
+
+    p = optparse.OptionParser(usage='%prog --web|pdf|matlab [--mad] mfilelist')
+
+    p.add_option('-w', '--web',
+                 dest='Format', action='store_const', const='web',
+                 help='format pages for online web viewing')
+    p.add_option('-M', '--doc', dest='Format', action='store_const',
+                 const='matlab', help='format pages for matlab help browser')
+    p.add_option('-l', '--latex',
+                 dest='Format', action='store_const', const='latex',
+                 help='format pages for creation with LaTeX')
+    p.add_option('-m', '--markdown',
+                 dest='Format', action='store_const', const='markdown',
+                 help='format pages for creation with MarkDown')
+    p.add_option('--mvtb',
+                 dest='toolbox', action='store_const', const='mvtb',
+                 help='format pages for MVTB')
+    p.add_option('--rtb',
+                 dest='toolbox', action='store_const', const='rtb',
+                 help='format pages for RTB')
+    p.add_option('-p', '--path',
+                 dest='path', type='str',
+                 help='path to toolbox root')
+    p.add_option('--include',
+                 dest='latex_include', action='store_true',
+                 help='LaTeX document is for inclusion,'
+                 ' not standalone (no preamble)')
+    p.add_option('-c', '--code',
+                 dest='gencode', action='store_true',
+                 help='create html form of code')
+    p.add_option('-d', '--display',
+                 dest='display', action='store_true',
+                 help='display in web browser')
+    p.add_option('-v', '--verbose',
+                 dest='Verbose', action='store_true',
+                 help='display in web browser')
+    p.add_option('--exclude', dest='exclude_files', type='str',
+                 help='exclude these files, comma separated list')
+
+    p.set_defaults(Verbose=False,
+                   display=False,
+                   Format='matlab',
+                   toolbox='rtb',
+                   latex_include=False,
+                   exclude_files='',
+                   gencode=False)
+
+    (opt, args) = p.parse_args()
+
+ #   globals().update(opt.__dict__)
+
+    if len(args) == 0:
+        p.print_help()
+        sys.exit(0)
+    pname = os.path.basename(sys.argv[0])
+
+    # sort files into alphabetic order, ignore case and @ symbol
+    files = sorted(args, key=lambda s: s.lstrip('@').lower())
+    # remove files from the arg list that are in the exclude list
+    if opt.exclude_files:
+        for file in opt.exclude_files.split(','):
+            files.remove(file)
+
+    # format the modules
+    if opt.Format == 'latex':
+        # in LaTeX mode, multiple files -> all.tex
+        gen = GenText.GenLatex(include=opt.latex_include,
+                               filepath=opt.path
+                               )
+        for file in files:
+            module = Module(file)
+            #help_format(gen, module)
+            try:
+                module.format(gen)
+            except:
+                print "Format failure for %s" % file
+                traceback.print_exc(file=sys.stdout)
+                sys.exit(1)
+        if opt.Verbose:
+            print "--> all.tex"
+        gen.write('all.tex')
+
+    elif opt.Format == 'html':
+        # Format is web or matlab
+        # in HTML mode, each input file -> file.html
+        for file in files:
+            module = Module(file)
+
+            gen = GenText.GenHTML(matlab=(opt.Format == 'matlab'),
+                                  toolbox=opt.toolbox,
+                                  filepath=opt.path
+                                  )
+            #help_format(gen, module)
+            module.format(gen)
+            if opt.Verbose:
+                print "--> ", module.name + '.html'
+            gen.write(module.name + '.html')
+
+            if opt.gencode:
+                module.format_code(gen, pname=pname)
+        if opt.display:
+            os.system('open ' + module.name + '.html')
+    elif opt.Format == 'markdown':
+        # Format is MarkDown
+        # in MarkDown mode, each input file -> file.md
+        for file in files:
+            module = Module(file)
+
+            gen = GenText.GenMarkDown(matlab=(opt.Format == 'matlab'),
+                                      toolbox=opt.toolbox,
+                                      filepath=opt.path
+                                      )
+            #help_format(gen, module)
+            module.format(gen)
+            if opt.Verbose:
+                print "--> ", module.name + '.md'
+            gen.write(module.name + '.md')
+
+            if opt.gencode:
+                module.format_code(gen, pname=pname)
+
+if __name__ == "__main__":
+    main()
