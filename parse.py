@@ -8,7 +8,7 @@ import sys
 
 # debug options
 debug_chunk = False
-debug_line = True
+debug_line = False
 
 # these variables are left capitalized
 nocaps = ['L', 'T', 'R', 'C', 'C2', 'H', 'E', 'J',
