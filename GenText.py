@@ -48,8 +48,8 @@ import sys
 import parse
 
 # debug options
-debug_gen = True
-debug_format = True
+debug_gen = False
+debug_format = False
 
 
 
@@ -303,10 +303,10 @@ class GenHelp(object):
                 while True:
                     nextLine = parser.nextLine()
                     if nextLine.same(curLine):
-                        print "SAME"
+                        #print "SAME"
                         self.addTable(nextLine.col1(), nextLine.col2())
                     else:
-                        print "NOT SAME"
+                        #print "NOT SAME"
                         # not a similar table line
                         if nextLine.type in (parse.TABLESEP, parse.BLANKLINE):
                             # blank line is a blank row in table
@@ -696,7 +696,7 @@ class GenLatex(GenHelp):
             definition = definition.replace('_', r'\_')
             definition = definition.replace('^', r'\textasciicircum ')
             self.out += "\\texttt{" + definition + "}"
-            print 'DEFINITION', definition
+            #print 'DEFINITION', definition
 
         self.out += self.transform(text, **args) + '\n'
 

@@ -55,7 +55,6 @@ class MATLABLine(object):
     def same(self, other):
         if self.type == TEXT and other.type == TEXT and self.indent > 8 and other.indent > 8:
             return True
-        print 
         return self.type == other.type and self.indent == other.indent
 
     def text(self, indent=False):
