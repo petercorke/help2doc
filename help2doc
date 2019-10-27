@@ -225,12 +225,16 @@ class Module:
 
             # render each method as documentation
             for (i, method) in enumerate(self.methods):
-                gen.format(self.method_comments[method],
-                           classname + '.' + method,
-                           classname=self.name,
-                           tag=method,
-                           titlebar=False
-                           )
+                try:
+                    gen.format(self.method_comments[method],
+                               classname + '.' + method,
+                               classname=self.name,
+                               tag=method,
+                               titlebar=False
+                               )
+                except:
+                    print "Format failure for module %s" % method
+                    raise
                 if i < (len(self.methods) - 1):
                     # no separator after last method
                     gen.endMethod()
@@ -322,7 +326,7 @@ def main():
             try:
                 module.format(gen)
             except:
-                print "Format failure for %s" % file
+                print "Format failure in file %s" % file
                 traceback.print_exc(file=sys.stdout)
                 sys.exit(1)
         if opt.Verbose:
