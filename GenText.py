@@ -1125,3 +1125,9 @@ class GenMarkDown(GenHelp):
                 for func in funcs:
                  f.write("[`%s`](%s.html)\n\n" % (func, os.path.join(prefix,func)))
 
+        with open('index_all.md', 'w') as f:
+            f.write('# Function indices\n\n')
+            f.write(" * [All functions](%s)\n" % (os.path.join(prefix,'index_alpha.html'),))
+            f.write(" * By tag:\n")
+            for tag in sorted(bytag.keys()):
+                f.write("   - [%s related](%s)\n" % (tag, os.path.join(prefix, tag+'.html')))

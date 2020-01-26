@@ -218,4 +218,6 @@ The tags are listed alphabetically, and unknown tags are displayed inside angle 
 * `--rtb` and `--mvtb` add specific footer and copyright notices to the output documentation.  This needs to be generalized.
 * the MATLAB file parser still needs work
 * I think the HTML output generator is broken now...
-* 
+* Need to handle tags for classes
+* Need to create index generator code for other languages than MarkDown
+* Probably need to split `GenText.py` into per language files, it's too big

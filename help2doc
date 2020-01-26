@@ -418,6 +418,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    print funcIndex_all
-    print funcIndex_tag
