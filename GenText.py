@@ -1109,3 +1109,19 @@ class GenMarkDown(GenHelp):
             today = date.today()
             out.write('---\nGenerated %s by *%s &copy; 2019 Peter Corke\n' % (today.isoformat(), pname))
 
+    def write_indices(self, all, bytag, prefix=''):
+        # make the alphabetic list
+        funcs = sorted(all)
+        with open('index_alpha.md', 'w') as f:
+            f.write('# Alphabetic list of functions\n')
+            for func in funcs:
+                f.write("[`%s`](%s.html)\n\n" % (func, os.path.join(prefix,func)))
+
+        # make the per tag indices
+        for tag in bytag.keys():
+            funcs = sorted(bytag[tag])
+            with open('index_%s.md' % (tag,), 'w') as f:
+                f.write('# List of %s functions\n' % (tag,))
+                for func in funcs:
+                 f.write("[`%s`](%s.html)\n\n" % (func, os.path.join(prefix,func)))
+

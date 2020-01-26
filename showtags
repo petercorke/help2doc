@@ -1,0 +1,31 @@
+#! /usr/bin/env python
+
+'''showtags
+Usage: showtags list of m-files
+
+the files are parsed for the help2doc tag line which starts in left-most column with %## and the tags
+are listed, one line per file.  Unknown tags are placed in <angle brackets>.
+'''
+
+import sys
+
+allTags = ('2d', '3d', 'pose', 'homogeneous', 'class', 'rotation', 'translation', 'differential', 
+    'arm-robot', 'kinematic', 'dynamic', 'trajectory', 'model',
+    'mobile-robot', 'planning', 'localization', 'mapping',
+    'codegen', 'utility', 'graphics')
+
+files = sorted(sys.argv[1:], key=lambda s: s.lstrip('@').lower())
+for file in files:
+    # look for a tag, line starting with %## tag list
+    with open(file, 'r') as f:
+        for line in f:
+            if line.startswith('%##'):
+                tags = line[3:].strip().split(' ')
+                tags = [tag for tag in tags if tag != '']
+                tags.sort()
+
+                for i,tag in enumerate(tags):
+                    if tag not in allTags:
+                         tags[i] = '<' + tag + '>'
+                print '%16s: %s' % (file, ' '.join(tags))
+                break

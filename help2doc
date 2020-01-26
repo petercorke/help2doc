@@ -67,6 +67,14 @@ parseDebug = True
 
 pname = None
 
+allTags = ('2d', '3d', 'pose', 'homogeneous', 'class', 'rotation', 'translation', 'differential', 
+    'arm-robot', 'kinematic', 'dynamic', 'trajectory', 'model',
+    'mobile-robot', 'planning', 'localization', 'mapping',
+    'codegen', 'utility', 'graphics')
+
+makeIndex = False
+funcIndex_tag = {}
+funcIndex_all = []
 
 class Module:
     # Module(path)
@@ -90,8 +98,10 @@ class Module:
     def __init__(self, path):
         self.path = path
         self.filename = os.path.basename(path)
+        self.funcname = os.path.splitext(self.filename)[0]
         self.methods = {}
         self.topcomment = None
+        self.tags = []
         rootname = os.path.splitext(self.filename)[0]
         self.re_m = re.compile('''\s*function\s+(?P<lhs>.*=)?\s*(?P<func>[a-zA-Z][\w\.]*)(?P<args>.*)''')
         if rootname.startswith('@'):
@@ -137,13 +147,32 @@ class Module:
             if comment:
                 self.topcomment = comment
 
+            if makeIndex:
+                funcIndex_all.append(self.funcname)
+
             # now go looking for commented functions
             #    function ....
             #     % comment
             #     % more comment
             self.method_comments = {}
             for line in f:
-                if line.lstrip().startswith('function'):
+                line = line.strip()
+
+                # look for a tag, line starting with %## tag list
+                if line.startswith('%##'):
+                    tags = line[3:].strip().split(' ')
+                    tags = [tag for tag in tags if tag != ''] # remove elements due to multiple spaces
+                    if makeIndex:
+                        for tag in tags:
+                            if tag not in allTags:
+                                print('bad tag %s in %s' % (tag, self.funcname))
+                            if tag in funcIndex_tag:
+                                funcIndex_tag[tag].append(self.funcname)
+                            else:
+                                funcIndex_tag[tag] = [self.funcname]
+
+                # look for a function definition
+                if line.startswith('function'):
                     m = self.re_m.match(line)
                     #print line
                     if m:
@@ -252,6 +281,9 @@ class Module:
 def main():
     global opts, pname
 
+    #-------------------------------------------------------------------------------
+    # parse options
+    #-------------------------------------------------------------------------------
     p = optparse.OptionParser(usage='%prog --web|pdf|matlab [--mad] mfilelist')
 
     p.add_option('-w', '--web',
@@ -289,6 +321,8 @@ def main():
                  help='display in web browser')
     p.add_option('--exclude', dest='exclude_files', type='str',
                  help='exclude these files, comma separated list')
+    p.add_option('--index', dest='makeIndex', action='store_true',
+             help='create an index')
 
     p.set_defaults(Verbose=False,
                    display=False,
@@ -296,9 +330,13 @@ def main():
                    toolbox='rtb',
                    latex_include=False,
                    exclude_files='',
-                   gencode=False)
+                   gencode=False,
+                   makeIndex=False)
 
     (opt, args) = p.parse_args()
+
+    global makeIndex
+    makeIndex = opt.makeIndex
 
  #   globals().update(opt.__dict__)
 
@@ -314,6 +352,9 @@ def main():
         for file in opt.exclude_files.split(','):
             files.remove(file)
 
+    #-------------------------------------------------------------------------------
+    # format the output
+    #-------------------------------------------------------------------------------
     # format the modules
     if opt.Format == 'latex':
         # in LaTeX mode, multiple files -> all.tex
@@ -372,5 +413,11 @@ def main():
             if opt.gencode:
                 module.format_code(gen, pname=pname)
 
+        if makeIndex:
+            gen.write_indices(funcIndex_all, funcIndex_tag)
+
 if __name__ == "__main__":
     main()
+
+    print funcIndex_all
+    print funcIndex_tag

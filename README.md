@@ -1,6 +1,18 @@
+This package provides some tools to support a simple MATLAB markup that is subtle enough to ensure that the help documentation is still readable using the command line `help` function. All documentation is kept with the code in a single text file which means that many software development tools (like sed, awk, diff) can be applied and revisions tracked easily using GitHub.
+
+In contrast, MATLAB _Live Functions_ are zip files that contain many files are not easy to edit or compare outside of the MATLAB environment.
+
+There are two tools in this package:
+
+* [help2doc](#help2doc)
+* [showtags](#showtags)
+
+# help2doc
+
 Process MATLAB source files (functions and class definitions) and produce LaTex, HTML or MarkDown documentation.
 
-# Usage
+
+## Usage
 
 ```
 help2doc options <list of m files>
@@ -23,22 +35,22 @@ The options are:
 -d, --display         | display in web browser
 -v, --verbose         | display in web browser
 --exclude=EXCLUDE_FILES | exclude files
+--index               | create index files
 
 
-# MATLAB markup
+## MATLAB markup
 
-The markup is simple and subtle enough to ensure that the help documentation is still readable.
 
-## Placing the markup comment blocks
+### Placing the markup comment blocks
 
-## H1 line
+### H1 line
 The H1 line is the first line in the file and gives the function name and a brief synopsis.
 
 ```matlab
 %PLOT_RIBBON Draw a wide curved 3D arrow
 ```
 
-## Additional comments
+### Additional comments
 Following the H1 line, but in the same comment block, describe the function (or the class).
 
 ```matlab
@@ -66,7 +78,7 @@ Following the H1 line, but in the same comment block, describe the function (or 
 
 Documentation ends at the first non-comment line in the file.
 
-## Class methods
+### Class methods
 
 In addition to the comment block starting at the top of the file which describes the class, document each method by a comment block below the function declaration for the method.  
 
@@ -83,9 +95,9 @@ In addition to the comment block starting at the top of the file which describes
 
 Methods for the class are listed alphabetically, except for the constructor which is always listed first.  The class name is highlighted.
 
-## Markup format
+### Markup format
 
-### Headings
+#### Headings
 
 A heading is indicated by a double colon on the end of a standalone text line
 
@@ -95,7 +107,7 @@ A heading is indicated by a double colon on the end of a standalone text line
 %
 ```
 
-### Paragraph
+#### Paragraph
 
 A sequence of lines with the same indent and no blank lines in between.  The first part of the paragraph is parsed to find any MATLAB code and any variables are added to a symbol table for this M-file.  Any instances of that symbol in later text are escaped in an output format specific way.
 
@@ -117,7 +129,7 @@ EXPR := <LHS> | <RHS> = <LHS>
 ```
 
 
-### Lists
+#### Lists
 A list item begins with a hyphen.
 ```matlab
 %
@@ -137,7 +149,7 @@ Lists may also be indented.
 %
 ```
 
-### Table
+#### Table
 Only two column tables are supported.  The columns are separated by at least 3 white spaces.
 ```matlab
 %
@@ -152,7 +164,7 @@ Tables cannot be nested.  There is no header row.
 
 In MarkDown output format it is mandatory to have a header row, so the first row of a table is empty.
 
-### Literal
+#### Literal
 
 Any code that is indented by at least 8 blanks is treated as a literal
 
@@ -162,7 +174,7 @@ Any code that is indented by at least 8 blanks is treated as a literal
 %          end
 ```
 
-### See also
+#### See also
 
 A comma separated list of functions is transformed into hyperlinked text.
 
@@ -170,10 +182,40 @@ A comma separated list of functions is transformed into hyperlinked text.
 % See also function1, function2, function3.
 ```
 
+## Tags and indices
+
+If the `--index` command option is given, then indices are compiled and extra output files are created.
+
+A comment line like
+
+```matlab
+%## tag1 tag2 ...
+```
+will cause the containing file to be added to various indices:
+
+* the alphabetic index called `index_alpha` with an extension that depends on the output language.
+* one or more per tag index files with names of the form `index_tag` with an extension that depends on the output language.
+
+# showtags
+A command line utility that will show a formatted list of all functions and their tags, for example
+
+```matlab
+% showtags *m
+           t2r.m: 2d 3d homogeneous
+   tb_optparse.m: utility
+     tr2angvec.m: 3d homogeneous rotation
+      tr2delta.m: 3d differential homogeneous
+        tr2eul.m: 3d homogeneous rotation
+        tr2jac.m: 3d differential homogeneous
+        tr2rpy.m: 3d homogeneous rotation
+         tr2rt.m: 2d 3d homogeneous rotation translation
+```
+
+The tags are listed alphabetically, and unknown tags are displayed inside angle brackets.
 
 # TODO
 
 * `--rtb` and `--mvtb` add specific footer and copyright notices to the output documentation.  This needs to be generalized.
 * the MATLAB file parser still needs work
 * I think the HTML output generator is broken now...
-* Should build an index of all functions and classes and hyperlink any reference to them.
+* 

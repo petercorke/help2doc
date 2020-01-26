@@ -1,10 +1,5 @@
-
-
-from functools import partial
 import re
-import os
 from datetime import date
-import sys
 
 # debug options
 debug_chunk = False
@@ -38,8 +33,7 @@ re_bullet = re.compile(r'\s+-\s*(?P<text>.*)')
 re_text = re.compile(r'\s*(?P<text>.*)')
 re_header = re.compile(r'\s*(?P<text>[A-Z][^:]+)::$')
 re_seealso = re.compile(r'\s*See also\s*(?P<text>.*?)\.$')
-#re_code = re.compile(r' {8}\s*(?P<text>.+)')
-
+# re_code = re.compile(r' {8}\s*(?P<text>.+)')
 
 
 class MATLABLine(object):
@@ -59,7 +53,7 @@ class MATLABLine(object):
 
     def text(self, indent=False):
         if indent:
-            return ' '*(self.indent-6) + self.textdata[0].strip()
+            return ' ' * (self.indent - 6) + self.textdata[0].strip()
         else:
             return self.textdata[0].strip()
 
@@ -69,6 +63,7 @@ class MATLABLine(object):
     def col2(self):
         return self.textdata[1].strip()
 
+
 class MATLABLineEnd(Exception):
     pass
 
@@ -76,32 +71,30 @@ class MATLABLineEnd(Exception):
 # l = p.nextLine()
 # returns an object with properties: type, text, indent
 
+
 class Parser(object):
     def __init__(self, doc):
-        self.linenum = 0;
+        self.linenum = 0
         self.lines = doc.split('\n')
 
     def nextLine(self):
-        curText = ''
-        curType = None
-        curIndent = 0
 
         # get comment line, classify it
         (text, indent, typ) = self.readline()
 
         if typ == TABLE:
-            z = self.peekline() # peek at next line
+            z = self.peekline()  # peek at next line
             if z[2] == TEXT and z[1] == indent[1]:
                 # continuation line
                 text[0] += ' ' + z[0][0]
-                self.readline() # consume that line
+                self.readline()  # consume that line
 
         elif typ == LIST:
-            z = self.peekline() # peek at next line
+            z = self.peekline()  # peek at next line
             if z[2] == TEXT and z[1] == indent:
                 # continuation line
                 text[0] += ' ' + z[0][0]
-                self.readline() # consume that line
+                self.readline()  # consume that line
 
         if debug_line:
             self.showline(indent, typ, text)
@@ -142,9 +135,7 @@ class Parser(object):
             return ('', 0, END)
         line = line.lstrip('%')
         line = line.rstrip()
-
-        return self.classify(line)    
-
+        return self.classify(line)
 
     def classify(self, line):
 
@@ -157,7 +148,6 @@ class Parser(object):
             indent = m.start('text')
             chunk = [m.group('text')]
             return (chunk, indent, HEADER)
-
 
         #  OPT   TEXT   at least 3 spaces between
         m = re_table.match(line)
@@ -187,7 +177,6 @@ class Parser(object):
         m = re_bullet.match(line)
         if m:
             indent = m.start('text')
-            curIndent = indent
             chunk = [m.group('text')]
             return (chunk, indent, LIST)
 
@@ -195,38 +184,31 @@ class Parser(object):
         m = re_seealso.match(line)
         if m:
             indent = m.start('text')
-            curIndent = indent
             chunk = [m.group('text')]
             return (chunk, indent, SEEALSO)
-
 
         m = re_text.match(line)
         if m:
             indent = m.start('text')
-            curIndent = indent
             chunk = [m.group(0)]
             return (chunk, indent, TEXT)
 
-
-
-    def showchunk(self, indent,typ,text):
+    def showchunk(self, indent, typ, text):
         print '<<< getchunk:%s' % stateName(typ),
         print ', indent=',
         print indent,
-        
+
         print '{',
         print text,
         print '} >>>'
-    
-    def showline(self, indent,typ,text):
+
+    def showline(self, indent, typ, text):
         print '<< getchunk:%s' % stateName(typ),
         print ', indent=',
         print indent,
         print '{',
         print text,
         print '} >>'
-
-
 
 
 def stateName(c):
