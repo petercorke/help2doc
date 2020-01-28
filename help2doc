@@ -77,7 +77,7 @@ allTags = ('2d', '3d', 'pose', 'homogeneous', 'class', 'rotation', 'translation'
 
 makeIndex = False
 funcIndex_tag = {}
-funcIndex_all = []
+funcIndex_all = {}
 
 class Module:
     # Module(path)
@@ -135,6 +135,12 @@ class Module:
 
         return 'Module(%s) %s, rootname=%s, %d methods' % (self.path, typ, self.name, len(self.methods))
 
+    def get_summary(self):
+        ks = self.topcomment.find(' ')
+        kn = self.topcomment.find('\n')
+        print self.topcomment[ks:kn]
+        return self.topcomment[ks:kn].strip()
+
     def parse(self):
         # parse an m-file looking for header blocks
         # - it will have a file header
@@ -151,7 +157,7 @@ class Module:
                 self.topcomment = comment
 
             if makeIndex:
-                funcIndex_all.append(self.funcname)
+                funcIndex_all[self.funcname] = self.get_summary()
 
             # now go looking for commented functions
             #    function ....
@@ -326,6 +332,8 @@ def main():
                  help='exclude these files, comma separated list')
     p.add_option('--index', dest='makeIndex', action='store_true',
              help='create an index')
+    p.add_option('--jekyll', dest='jekyll', action='store_true',
+            help='add Jekyll headers (for MarkDown output)')
 
     p.set_defaults(Verbose=False,
                    display=False,
@@ -334,6 +342,7 @@ def main():
                    latex_include=False,
                    exclude_files='',
                    gencode=False,
+                   jekyll=False,
                    makeIndex=False)
 
     (opt, args) = p.parse_args()
@@ -419,7 +428,7 @@ def main():
                 module.format_code(gen, pname=pname)
 
         if makeIndex:
-            gen.write_indices(funcIndex_all, funcIndex_tag)
+            gen.write_indices(funcIndex_all, funcIndex_tag, jekyll=opt.jekyll)
 
 if __name__ == "__main__":
     main()
