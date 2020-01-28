@@ -59,7 +59,10 @@ import os.path
 import optparse
 import glob
 
-import GenText  # file parser and text rendering
+#import GenText  # file parser and text rendering
+from GenText_MarkDown import GenMarkDown
+from GenText_HTML import GenHTML
+from GenText_LaTeX import GenLaTeX
 
 
 parseDebug = False
@@ -352,13 +355,13 @@ def main():
         for file in opt.exclude_files.split(','):
             files.remove(file)
 
-    #-------------------------------------------------------------------------------
+    #----------------------------------------------------------------
     # format the output
-    #-------------------------------------------------------------------------------
+    #----------------------------------------------------------------
     # format the modules
     if opt.Format == 'latex':
         # in LaTeX mode, multiple files -> all.tex
-        gen = GenText.GenLatex(include=opt.latex_include,
+        gen = GenLatex(include=opt.latex_include,
                                filepath=opt.path
                                )
         for file in files:
@@ -380,7 +383,7 @@ def main():
         for file in files:
             module = Module(file)
 
-            gen = GenText.GenHTML(matlab=(opt.Format == 'matlab'),
+            gen = GenHTML(matlab=(opt.Format == 'matlab'),
                                   toolbox=opt.toolbox,
                                   filepath=opt.path
                                   )
@@ -399,10 +402,12 @@ def main():
         # in MarkDown mode, each input file -> file.md
         for file in files:
             module = Module(file)
+            print module.__dict__
 
-            gen = GenText.GenMarkDown(matlab=(opt.Format == 'matlab'),
+            gen = GenMarkDown(matlab=(opt.Format == 'matlab'),
                                       toolbox=opt.toolbox,
-                                      filepath=opt.path
+                                      filepath=opt.path,
+                                      jekyll=opt.jekyll
                                       )
             #help_format(gen, module)
             module.format(gen)
