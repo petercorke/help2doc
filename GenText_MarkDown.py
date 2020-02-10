@@ -93,17 +93,17 @@ class GenMarkDown(GenHelp):
     #-------------------- CODE
     @trace
     def startCode(self):
-        print '  start code'
+        #print '  start code'
         self.out += '```matlab\n'
 
     @trace
     def addCode(self, text):
-        print '  add code'
+        #print '  add code'
         self.out += '%s\n' % text
 
     @trace
     def endCode(self):
-        print '  end code'
+        #print '  end code'
         self.out = self.out[0:-2]  # remove previous newline
         self.out += '```\n'
 
@@ -127,7 +127,7 @@ class GenMarkDown(GenHelp):
 
     @trace
     def addPara(self, text, definition, **args):
-        print "  add to para", text, definition
+        #print "  add to para", text, definition
 
         self.startPara()
         if definition:
@@ -191,10 +191,10 @@ class GenMarkDown(GenHelp):
         # make the alphabetic list
         print all
         funcs = sorted(all.keys())
-        with open('TOC_alpha.md', 'w') as f:
+        with open('TOC_ALL.md', 'w') as f:
             if jekyll:
                 f.write('---\n---\n')
-            f.write('# Alphabetic list of functions\n')
+            f.write('# All functions\n')
             f.write('\n| Function | Description|\n|---|---|\n')
             for func in funcs:
                 f.write("|[`%s`](%s.html) | %s |\n" % (func, os.path.join(prefix,func), all[func]))
@@ -205,16 +205,16 @@ class GenMarkDown(GenHelp):
             with open('TOC_%s.md' % (tag,), 'w') as f:
                 if jekyll:
                     f.write('---\n---\n')
-                f.write('# List of %s functions\n' % (tag,))
+                f.write('# %s functions\n' % (tag,))
                 f.write('\n| Function | Description|\n|---|---|\n')
                 for func in funcs:
-                 f.write("|[`%s`](TOC_%s.html) | %s |\n" % (func, os.path.join(prefix,func), all[func]))
+                 f.write("|[`%s`](%s.html) | %s |\n" % (func, os.path.join(prefix,func), all[func]))
 
         with open('TOC.md', 'w') as f:
             if jekyll:
                 f.write('---\n---\n')
             f.write('# Function indices\n\n')
-            f.write(" * [All functions](%s)\n" % (os.path.join(prefix,'index_alpha.html'),))
+            f.write(" * [All functions](%s)\n" % (os.path.join(prefix,'TOC_ALL.html'),))
             f.write(" * By tag:\n")
             for tag in sorted(bytag.keys()):
-                f.write("   - [%s related](%s)\n" % (tag, os.path.join(prefix, tag+'.html')))
+                f.write("   - [%s related](%s)\n" % (tag, os.path.join(prefix, 'TOC'+tag+'.html')))
