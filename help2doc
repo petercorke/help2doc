@@ -58,6 +58,7 @@ import os
 import os.path
 import optparse
 import glob
+import json
 
 #import GenText  # file parser and text rendering
 from GenText_MarkDown import GenMarkDown
@@ -76,8 +77,8 @@ allTags = ('2d', '3d', 'pose', 'homogeneous', 'class', 'rotation', 'translation'
     'codegen', 'utility', 'graphics')
 
 makeIndex = False
-funcIndex_tag = {}
-funcIndex_all = {}
+funcIndex_tag = {}  # key=tag, value=list of funcs with tag
+funcIndex_all = {}  # key=func, value=summary line
 
 class Module:
     # Module(path)
@@ -156,8 +157,7 @@ class Module:
             if comment:
                 self.topcomment = comment
 
-            if makeIndex:
-                funcIndex_all[self.funcname] = self.get_summary()
+            funcIndex_all[self.funcname] = self.get_summary()
 
             # now go looking for commented functions
             #    function ....
@@ -171,14 +171,13 @@ class Module:
                 if line.startswith('%##'):
                     tags = line[3:].strip().split(' ')
                     tags = [tag for tag in tags if tag != ''] # remove elements due to multiple spaces
-                    if makeIndex:
-                        for tag in tags:
-                            if tag not in allTags:
-                                print('bad tag %s in %s' % (tag, self.funcname))
-                            if tag in funcIndex_tag:
-                                funcIndex_tag[tag].append(self.funcname)
-                            else:
-                                funcIndex_tag[tag] = [self.funcname]
+                    for tag in tags:
+                        if tag not in allTags:
+                            print('bad tag %s in %s' % (tag, self.funcname))
+                        if tag in funcIndex_tag:
+                            funcIndex_tag[tag].append(self.funcname)
+                        else:
+                            funcIndex_tag[tag] = [self.funcname]
 
                 # look for a function definition
                 if line.startswith('function'):
@@ -332,6 +331,8 @@ def main():
                  help='exclude these files, comma separated list')
     p.add_option('--index', dest='makeIndex', action='store_true',
              help='create an index')
+    p.add_option('--export-toc', dest='export_toc', action='store_true',
+             help='store TOC data in TOC.json')
     p.add_option('--jekyll', dest='jekyll', action='store_true',
             help='add Jekyll headers (for MarkDown output)')
 
@@ -370,7 +371,7 @@ def main():
     # format the modules
     if opt.Format == 'latex':
         # in LaTeX mode, multiple files -> all.tex
-        gen = GenLatex(include=opt.latex_include,
+        gen = GenLaTeX(include=opt.latex_include,
                                filepath=opt.path
                                )
         for file in files:
@@ -411,7 +412,6 @@ def main():
         # in MarkDown mode, each input file -> file.md
         for file in files:
             module = Module(file)
-            print module.__dict__
 
             gen = GenMarkDown(matlab=(opt.Format == 'matlab'),
                                       toolbox=opt.toolbox,
@@ -427,8 +427,12 @@ def main():
             if opt.gencode:
                 module.format_code(gen, pname=pname)
 
-        if makeIndex:
+        if opt.makeIndex:
             gen.write_indices(funcIndex_all, funcIndex_tag, jekyll=opt.jekyll)
+
+    if opt.export_toc:
+        with open("TOC.json", "w") as toc:
+            json.dump((funcIndex_tag, funcIndex_all), toc)
 
 if __name__ == "__main__":
     main()
