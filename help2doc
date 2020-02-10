@@ -124,7 +124,10 @@ class Module:
                         break
 
         if not self.atfile:
-            self.parse()
+            try:
+                self.parse()
+            except:
+                print 'Error parsing file: ', path
 
     def __repr__(self):
         if self.atfile:
@@ -139,7 +142,7 @@ class Module:
     def get_summary(self):
         ks = self.topcomment.find(' ')
         kn = self.topcomment.find('\n')
-        print self.topcomment[ks:kn]
+        #print self.topcomment[ks:kn]
         return self.topcomment[ks:kn].strip()
 
     def parse(self):
@@ -168,7 +171,7 @@ class Module:
                 line = line.strip()
 
                 # look for a tag, line starting with %## tag list
-                if line.startswith('%##'):
+                if line.startswith('%## '):
                     tags = line[3:].strip().split(' ')
                     tags = [tag for tag in tags if tag != ''] # remove elements due to multiple spaces
                     for tag in tags:
