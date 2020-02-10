@@ -5,7 +5,7 @@ from GenText import * # file parser and text rendering
 # =============================================================================
 class GenLaTeX(GenHelp):
     def __init__(self, include=True, **kwargs):
-        super(GenLatex, self).__init__(**kwargs)
+        super(GenLaTeX, self).__init__(**kwargs)
 
         self.re_squote = re.compile(r"(\A|\s)'(.*?)'(\Z|[^a-zA-Z])")
         self.re_dquote = re.compile(r'"(.*?)"')
